@@ -27,10 +27,10 @@ python app.py
 
 ```
 expense-tracker/
-├── app.py              # Flask приложение (маршруты, логика)
-├── expenses.json       # База данных (JSON-файл)
+├── app.py              # Flask приложение 
+├── expenses.json       # БД (JSON-файл)
 ├── templates/
-│   ├── base.html       # Базовый шаблон с навигацией
+│   ├── base.html       # Шаблон с навигацией
 │   ├── index.html      # dashboard
 │   ├── add.html        # Форма добавления
 │   └── list.html       # Список расходов
