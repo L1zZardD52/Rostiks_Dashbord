@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}dashboard —Rostiks{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>dashboard <span>расходов</span></h1>
+  <p>Финансовая сводка компании Rostiks</p>
+</div>
+
+<div class="grid-3">
+  <div class="stat-card">
+    <div class="card-label">Общие расходы</div>
+    <div class="card-value red">{{ "{:,.0f}".format(total) }} ₽</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="card-label">Количество записей</div>
+    <div class="card-value">{{ expenses|length }}</div>
+  </div>
+  <div class="stat-card green">
+    <div class="card-label">Категорий</div>
+    <div class="card-value">{{ by_category|length }}</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="section-title"> Расходы по категориям</div>
+    {% if by_category %}
+      {% set max_val = by_category.values()|max %}
+      {% for cat, amount in by_category.items()|sort(attribute='1', reverse=True) %}
+      <div class="bar-item">
+        <div class="bar-meta">
+          <span>{{ cat }}</span>
+          <span class="amount">{{ "{:,.0f}".format(amount) }} ₽</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: {{ (amount / max_val * 100)|int }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="icon"></div>
+        <p>Нет данных для отображения</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:0; flex:1;"> Последние расходы</div>
+      <a href="{{ url_for('expense_list') }}" style="font-size:13px; color:var(--red); text-decoration:none; font-weight:600; white-space:nowrap; margin-left:8px;">Все →</a>
+    </div>
+    {% if recent %}
+    <table>
+      <thead>
+        <tr>
+          <th>Название</th>
+          <th>Категория</th>
+          <th>Сумма</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in recent %}
+        <tr>
+          <td style="font-weight:500;">{{ e.title }}</td>
+          <td><span class="badge">{{ e.category }}</span></td>
+          <td><span class="amount" style="color:var(--red);">{{ "{:,.0f}".format(e.amount) }} ₽</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon"></div>
+      <p>Расходов ещё нет</p>
+      <a href="{{ url_for('add') }}" class="btn btn-primary" style="margin-top:14px; display:inline-flex;">Добавить первый</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

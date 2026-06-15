@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}Графики — Rostiks{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Визуализация <span>расходов</span></h1>
+  <p>Динамика по датам и структура по категориям</p>
+</div>
+
+{% if expenses %}
+
+<!-- Stat cards -->
+<div class="grid-3" style="margin-bottom: 28px;">
+  <div class="stat-card">
+    <div class="card-label">Общие расходы</div>
+    <div class="card-value red">{{ "{:,.0f}".format(total) }} ₽</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="card-label">Записей</div>
+    <div class="card-value">{{ expenses|length }}</div>
+  </div>
+  <div class="stat-card green">
+    <div class="card-label">Категорий</div>
+    <div class="card-value">{{ by_category|length }}</div>
+  </div>
+</div>
+
+<!-- Line chart — расходы по датам -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="section-title">📈 Расходы по датам</div>
+  <div style="position: relative; height: 300px;">
+    <canvas id="lineChart"></canvas>
+  </div>
+</div>
+
+<!-- Two charts row -->
+<div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; margin-bottom: 24px;">
+
+  <!-- Bar chart by category -->
+  <div class="card">
+    <div class="section-title">📊 Расходы по категориям</div>
+    <div style="position: relative; height: 280px;">
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Pie chart -->
+  <div class="card">
+    <div class="section-title">🥧 Доля категорий</div>
+    <div style="position: relative; height: 280px; display: flex; align-items: center; justify-content: center;">
+      <canvas id="pieChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Category breakdown table -->
+<div class="card">
+  <div class="section-title">📋 Детализация по категориям</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Категория</th>
+          <th>Сумма</th>
+          <th>Доля</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat, amount in by_category.items()|sort(attribute='1', reverse=True) %}
+        <tr>
+          <td style="font-weight: 600;">{{ cat }}</td>
+          <td><span class="amount" style="color: var(--red);">{{ "{:,.0f}".format(amount) }} ₽</span></td>
+          <td style="color: var(--muted); font-size: 13px;">{{ "{:.1f}".format(amount / total * 100) }}%</td>
+          <td style="width: 180px;">
+            <div class="bar-track">
+              <div class="bar-fill" style="width: {{ (amount / total * 100)|int }}%;"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="icon">📊</div>
+  <p>Нет данных для графиков</p>
+  <a href="{{ url_for('add') }}" class="btn btn-primary" style="margin-top: 14px; display: inline-flex;">Добавить расход</a>
+</div>
+{% endif %}
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  // Data from Flask
+  const lineLabels  = {{ by_date | map(attribute=0) | list | tojson }};
+  const lineValues  = {{ by_date | map(attribute=1) | list | tojson }};
+  const catLabels   = {{ by_category.keys()   | list | tojson }};
+  const catValues   = {{ by_category.values() | list | tojson }};
+
+  const RED        = '#D0021B';
+  const RED_LITE   = '#FF1A35';
+  const YELLOW     = '#FFD000';
+  const BORDER_CLR = '#E0E0E0';
+
+  const PALETTE = [
+    '#D0021B','#FF6B35','#FFD000','#22c55e',
+    '#3b82f6','#8b5cf6','#ec4899','#14b8a6'
+  ];
+
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.color = '#777777';
+
+  // ── Line chart ──────────────────────────────────────────────
+  const lineCtx = document.getElementById('lineChart').getContext('2d');
+
+  const gradient = lineCtx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, 'rgba(208,2,27,0.18)');
+  gradient.addColorStop(1, 'rgba(208,2,27,0)');
+
+  new Chart(lineCtx, {
+    type: 'line',
+    data: {
+      labels: lineLabels,
+      datasets: [{
+        label: 'Расходы (₽)',
+        data: lineValues,
+        borderColor: RED,
+        backgroundColor: gradient,
+        borderWidth: 2.5,
+        pointBackgroundColor: RED,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '  ' + ctx.parsed.y.toLocaleString('ru-RU') + ' ₽'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: BORDER_CLR },
+          ticks: { font: { size: 12 } }
+        },
+        y: {
+          grid: { color: BORDER_CLR },
+          ticks: {
+            font: { size: 12 },
+            callback: v => v.toLocaleString('ru-RU') + ' ₽'
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // ── Bar chart ────────────────────────────────────────────────
+  new Chart(document.getElementById('barChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: catLabels,
+      datasets: [{
+        label: 'Сумма (₽)',
+        data: catValues,
+        backgroundColor: catLabels.map((_, i) => PALETTE[i % PALETTE.length]),
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '  ' + ctx.parsed.y.toLocaleString('ru-RU') + ' ₽'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        },
+        y: {
+          grid: { color: BORDER_CLR },
+          ticks: {
+            font: { size: 11 },
+            callback: v => v.toLocaleString('ru-RU') + ' ₽'
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // ── Pie chart ────────────────────────────────────────────────
+  new Chart(document.getElementById('pieChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: catLabels,
+      datasets: [{
+        data: catValues,
+        backgroundColor: catLabels.map((_, i) => PALETTE[i % PALETTE.length]),
+        borderColor: '#fff',
+        borderWidth: 3,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 12 },
+            padding: 12,
+            boxWidth: 12,
+            boxHeight: 12
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + ctx.label + ': ' + ctx.parsed.toLocaleString('ru-RU') + ' ₽'
+          }
+        }
+      }
+    }
+  });
+</script>
+
+{% endblock %}

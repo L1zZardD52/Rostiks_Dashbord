@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Расходы — Rostiks{% endblock %}
+{% block content %}
+
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+  <div>
+    <h1>Все <span>расходы</span></h1>
+    <p>{{ expenses|length }} записей{% if selected %} · {{ selected }}{% endif %}</p>
+  </div>
+  <a href="{{ url_for('add') }}" class="btn btn-primary">➕ Добавить</a>
+</div>
+
+<div class="card" style="margin-bottom:20px; padding:16px 20px;">
+  <form method="GET" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <label style="font-size:13px; font-weight:600; margin:0; white-space:nowrap;">Категория:</label>
+    <select name="category" onchange="this.form.submit()" style="max-width:220px;">
+      <option value="">Все категории</option>
+      {% for cat in categories %}
+      <option value="{{ cat }}" {% if selected == cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+    {% if selected %}
+    <a href="{{ url_for('expense_list') }}" class="btn btn-sm btn-ghost">✕ Сбросить</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  {% if expenses %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Название</th>
+          <th>Категория</th>
+          <th>Описание</th>
+          <th>Сумма</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in expenses %}
+        <tr>
+          <td style="color:var(--muted); font-size:13px; white-space:nowrap;">{{ e.date }}</td>
+          <td style="font-weight:600;">{{ e.title }}</td>
+          <td><span class="badge">{{ e.category }}</span></td>
+          <td style="color:var(--muted); font-size:13px;">{{ e.description or "—" }}</td>
+          <td><span class="amount" style="color:var(--red);">{{ "{:,.0f}".format(e.amount) }} ₽</span></td>
+          <td>
+            <form method="POST" action="{{ url_for('delete', expense_id=e.id) }}"
+                  onsubmit="return confirm('Удалить этот расход?')">
+              <button type="submit" class="btn btn-sm btn-danger">🗑</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end; padding:14px 14px 2px; border-top:1px solid var(--border); margin-top:4px;">
+    <div style="font-size:13px; color:var(--muted); font-weight:500;">
+      Итого:&nbsp;
+      <span class="amount" style="font-size:18px; color:var(--red);">
+        {{ "{:,.0f}".format(expenses|sum(attribute='amount')) }} ₽
+      </span>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="icon"></div>
+    <p>Расходов не найдено</p>
+    <a href="{{ url_for('add') }}" class="btn btn-primary" style="margin-top:14px; display:inline-flex;">Добавить расход</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

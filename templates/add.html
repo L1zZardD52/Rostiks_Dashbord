@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Новый расход — Rostiks{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Новый <span>расход</span></h1>
+  <p>Добавьте запись о расходе компании</p>
+</div>
+
+<div style="max-width: 540px;">
+  <div class="card">
+    <form method="POST" action="{{ url_for('add') }}">
+      <div class="form-group">
+        <label for="title">Название *</label>
+        <input type="text" id="title" name="title" placeholder="Например: закупка сырья" required>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="form-group">
+          <label for="amount">Сумма (₽) *</label>
+          <input type="number" id="amount" name="amount" placeholder="0" min="0" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label for="date">Дата *</label>
+          <input type="date" id="date" name="date" value="{{ today }}" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="category">Категория *</label>
+        <select id="category" name="category" required>
+          <option value="" disabled selected>Выберите категорию</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Комментарий</label>
+        <textarea id="description" name="description" placeholder="Дополнительная информация (необязательно)"></textarea>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:4px;">
+        <button type="submit" class="btn btn-primary"> Сохранить</button>
+        <a href="{{ url_for('index') }}" class="btn btn-ghost">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
